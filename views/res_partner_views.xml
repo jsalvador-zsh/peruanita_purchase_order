@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Vista de formulario extendida para proveedores -->
+        <record id="view_partner_form_inherit_purchase_custom" model="ir.ui.view">
+            <field name="name">res.partner.form.purchase.custom</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form" />
+            <field name="arch" type="xml">
+
+                <!-- Agregar campos de proveedor en la pestaña de ventas y compras -->
+                <xpath expr="//page[@name='sales_purchases']" position="inside">
+                    <group string="Información de Compras"
+                        invisible="is_company == False and supplier_rank == 0">
+                        <group>
+                            <field name="is_main_supplier" />
+                            <field name="supplier_status" />
+                            <field name="supplier_rating" />
+                        </group>
+                        <group>
+                            <field name="preferred_payment_terms" />
+                            <field name="delivery_days" />
+                        </group>
+                    </group>
+
+                    <group string="Contacto para Compras"
+                        invisible="is_company == False and supplier_rank == 0">
+                        <group>
+                            <field name="purchase_contact_name" />
+                            <field name="purchase_phone" />
+                        </group>
+                        <group>
+                            <field name="purchase_email" />
+                        </group>
+                    </group>
+
+                    <group string="Notas del Proveedor"
+                        invisible="is_company == False and supplier_rank == 0">
+                        <field name="supplier_notes" nolabel="1" />
+                    </group>
+                </xpath>
+
+            </field>
+        </record>
+
+        <!-- Vista extendida para cuentas bancarias -->
+        <record id="view_partner_bank_form_inherit_custom" model="ir.ui.view">
+            <field name="name">res.partner.bank.form.custom</field>
+            <field name="model">res.partner.bank</field>
+            <field name="inherit_id" ref="base.view_partner_bank_form" />
+            <field name="arch" type="xml">
+
+                <!-- Agregar campos CCI y tipo de cuenta -->
+                <xpath expr="//field[@name='acc_number']" position="after">
+                    <field name="l10n_pe_cci" placeholder="Ej: 00-221500-707248808720" />
+                    <field name="account_type" />
+                    <field name="currency_id" />
+                    <field name="is_main_account" />
+                </xpath>
+
+            </field>
+        </record>
+
+        <!-- Vista de lista para cuentas bancarias -->
+        <record id="view_partner_bank_tree_inherit_custom" model="ir.ui.view">
+            <field name="name">res.partner.bank.tree.custom</field>
+            <field name="model">res.partner.bank</field>
+            <field name="inherit_id" ref="base.view_partner_bank_tree" />
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='acc_number']" position="after">
+                    <field name="l10n_pe_cci" optional="show" />
+                    <field name="account_type" optional="hide" />
+                    <field name="is_main_account" optional="show" />
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de lista extendida para proveedores -->
+        <record id="view_partner_tree_inherit_purchase_custom" model="ir.ui.view">
+            <field name="name">res.partner.tree.purchase.custom</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_tree" />
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='vat']" position="after">
+                    <field name="supplier_status" optional="hide" />
+                    <field name="is_main_supplier" optional="hide" />
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de búsqueda extendida para proveedores -->
+        <record id="view_res_partner_filter_inherit_purchase_custom" model="ir.ui.view">
+            <field name="name">res.partner.search.purchase.custom</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_res_partner_filter" />
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='name']" position="after">
+                    <field name="purchase_contact_name" />
+                    <field name="supplier_status" />
+                </xpath>
+
+                <xpath expr="//filter[@name='supplier']" position="after">
+                    <separator />
+                    <filter string="Proveedores Principales" name="filter_main_suppliers"
+                        domain="[('is_main_supplier', '=', True)]" />
+                    <filter string="Proveedores Activos" name="filter_active_suppliers"
+                        domain="[('supplier_status', '=', 'active'), ('supplier_rank', '>', 0)]" />
+                    <filter string="Excelente Calificación" name="filter_excellent_suppliers"
+                        domain="[('supplier_rating', '=', 'excellent')]" />
+                </xpath>
+
+                <xpath expr="//group[@name='group_by']" position="inside">
+                    <filter string="Por Estado" name="group_supplier_status"
+                        domain="[]" context="{'group_by': 'supplier_status'}" />
+                    <filter string="Por Calificación" name="group_supplier_rating"
+                        domain="[]" context="{'group_by': 'supplier_rating'}" />
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista kanban personalizada para proveedores -->
+        <!-- <record id="view_partner_kanban_inherit_purchase_custom" model="ir.ui.view">
+            <field name="name">res.partner.kanban.purchase.custom</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.res_partner_kanban_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//div[@class='oe_kanban_details']" position="inside">
+                    <div t-if="record.supplier_rank.value > 0" class="o_kanban_tags_section">
+                        <span t-if="record.is_main_supplier.value" class="badge badge-pill badge-success">Principal</span>
+                        <span t-if="record.supplier_status.value" t-attf-class="badge badge-pill
+        badge-#{record.supplier_status.value == 'active' ? 'primary' : 'secondary'}">
+                            <field name="supplier_status"/>
+                        </span>
+                        <span t-if="record.supplier_rating.value" t-attf-class="badge badge-pill
+        badge-#{record.supplier_rating.value == 'excellent' ? 'success' :
+        (record.supplier_rating.value == 'good' ? 'info' : 'warning')}">
+                            <field name="supplier_rating"/>
+                        </span>
+                    </div>
+                </xpath>
+            </field>
+        </record> -->
+
+    </data>
+</odoo>
