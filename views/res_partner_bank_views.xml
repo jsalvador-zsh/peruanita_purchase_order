@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Vista de formulario extendida para cuentas bancarias desde purchase -->
+        <record id="view_partner_bank_form_inherit_purchase" model="ir.ui.view">
+            <field name="name">res.partner.bank.form.purchase</field>
+            <field name="model">res.partner.bank</field>
+            <field name="inherit_id" ref="account.view_partner_bank_form_inherit_account"/>
+            <field name="arch" type="xml">
+                
+                <!-- Agregar campos después del número de cuenta -->
+                <xpath expr="//field[@name='acc_number']" position="after">
+                    <!-- Si ya tienes cci_number de peruanita_sale_order, no duplicar -->
+                    <field name="account_type"/>
+                    <field name="is_main_account"/>
+                </xpath>
+                
+            </field>
+        </record>
+
+        <!-- Vista de lista extendida para cuentas bancarias -->
+        <record id="view_partner_bank_list_inherit_purchase" model="ir.ui.view">
+            <field name="name">res.partner.bank.list.purchase</field>
+            <field name="model">res.partner.bank</field>
+            <field name="inherit_id" ref="base.view_partner_bank_tree"/>
+            <field name="arch" type="xml">
+                
+                <!-- Agregar columnas adicionales -->
+                <xpath expr="//field[@name='acc_number']" position="after">
+                    <field name="account_type" optional="show"/>
+                    <field name="is_main_account" optional="show"/>
+                </xpath>
+                
+            </field>
+        </record>
+
+        <!-- Vista de lista desde el partner -->
+        <record id="view_partner_bank_list_partner_inherit_purchase" model="ir.ui.view">
+            <field name="name">res.partner.bank.list.partner.purchase</field>
+            <field name="model">res.partner.bank</field>
+            <field name="inherit_id" ref="base.view_partner_bank_tree"/>
+            <field name="arch" type="xml">
+                
+                <!-- Agregar columnas adicionales en vista desde partner -->
+                <xpath expr="//field[@name='acc_number']" position="after">
+                    <field name="account_type" optional="show"/>
+                    <field name="is_main_account" optional="show"/>
+                </xpath>
+                
+            </field>
+        </record>
+    </data>
+</odoo>

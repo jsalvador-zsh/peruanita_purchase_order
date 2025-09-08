@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Vista de formulario extendida para órdenes de compra -->
+        <record id="view_purchase_order_form_inherit_custom" model="ir.ui.view">
+            <field name="name">purchase.order.form.custom</field>
+            <field name="model">purchase.order</field>
+            <field name="inherit_id" ref="purchase.purchase_order_form" />
+            <field name="arch" type="xml">
+
+                <!-- Agregar información de orden personalizada después del proveedor -->
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <!-- Usar departamentos nativos en lugar de selection -->
+                    <field name="requesting_department_id" 
+                           placeholder="Seleccionar departamento solicitante"
+                           options="{'no_create_edit': True}"/>
+                    <field name="supply_month" />
+                </xpath>
+
+                <!-- Agregar nueva pestaña para información específica -->
+                <xpath expr="//notebook" position="inside">
+                    <page string="Información de O. Compra" name="peruanita_info">
+                        <group>
+                            <group string="Control de Proceso">
+                                <field name="elaborated_by" />
+                                <field name="received_by" />
+                                <field name="payment_status" />
+                            </group>
+                            <group string="Aprobación Tesorería">
+                                <field name="treasury_approval" />
+                                <field name="treasury_approved_by" />
+                                <field name="cancellation_dates" />
+                            </group>
+                        </group>
+
+                        <group string="Observaciones">
+                            <field name="purchase_observations" nolabel="1" />
+                        </group>
+
+                        <group string="Información del Proveedor" name="supplier_info">
+                            <!-- Mostrar información de contactos -->
+                            <group string="Contacto de Compras">
+                                <p class="text-muted">
+                                    La información de contacto se obtiene automáticamente de los
+                                    contactos relacionados al proveedor con función "Compras".
+                                </p>
+                            </group>
+                            
+                            <!-- Mostrar información bancaria -->
+                            <group string="Cuenta Bancaria Principal">
+                                <p class="text-muted">
+                                    Los datos bancarios se obtienen de la cuenta marcada como 
+                                    "Principal" en las cuentas bancarias del proveedor.
+                                </p>
+                            </group>
+                        </group>
+                    </page>
+                </xpath>
+
+            </field>
+        </record>
+
+        <!-- Vista de lista extendida -->
+        <record id="view_purchase_order_tree_inherit_custom" model="ir.ui.view">
+            <field name="name">purchase.order.tree.custom</field>
+            <field name="model">purchase.order</field>
+            <field name="inherit_id" ref="purchase.purchase_order_tree" />
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="requesting_department_id" optional="show" />
+                    <field name="supply_month" optional="hide" />
+                </xpath>
+                <xpath expr="//field[@name='amount_total']" position="after">
+                    <field name="payment_status" optional="show" />
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de búsqueda extendida -->
+        <record id="view_purchase_order_filter_inherit_custom" model="ir.ui.view">
+            <field name="name">purchase.order.search.custom</field>
+            <field name="model">purchase.order</field>
+            <field name="inherit_id" ref="purchase.view_purchase_order_filter" />
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='name']" position="after">
+                    <field name="requesting_department_id" />
+                    <field name="supply_month" />
+                </xpath>
+
+                <xpath expr="//filter[@name='draft']" position="after">
+                    <separator />
+                    <filter string="Pendiente Pago" name="filter_pending_payment"
+                        domain="[('payment_status', '=', 'pending')]" />
+                    <filter string="Aprobado Tesorería" name="filter_treasury_approved"
+                        domain="[('treasury_approval', '=', True)]" />
+                </xpath>
+
+                <xpath expr="//filter[@name='activities_exception']" position="inside">
+                    <filter string="Por Departamento Solicitante" name="group_requesting_department"
+                        domain="[]" context="{'group_by': 'requesting_department_id'}" />
+                    <filter string="Por Mes de Abastecimiento" name="group_supply_month"
+                        domain="[]" context="{'group_by': 'supply_month'}" />
+                    <filter string="Por Estado de Pago" name="group_payment_status"
+                        domain="[]" context="{'group_by': 'payment_status'}" />
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

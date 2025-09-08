@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Vista de formulario extendida para proveedores -->
+        <record id="view_partner_form_inherit_purchase_custom" model="ir.ui.view">
+            <field name="name">res.partner.form.purchase.custom</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                
+                <!-- Agregar campos de proveedor después de is_company -->
+                <xpath expr="//field[@name='is_company']" position="after">
+                    <field name="is_main_supplier" invisible="not is_company"/>
+                </xpath>
+                
+                <!-- Agregar nueva pestaña para información de proveedor -->
+                <xpath expr="//notebook" position="inside">
+                    <page string="Información de Proveedor" name="supplier_info" 
+                          invisible="not is_company or not supplier_rank">
+                        
+                        <group>
+                            <group string="Datos de Entrega">
+                                <field name="supplier_delivery_days"/>
+                                <!-- Usar property_payment_term_id nativo para términos de pago -->
+                                <field name="property_payment_term_id" string="Términos de Pago Preferidos"/>
+                                <field name="property_supplier_payment_term_id" string="Términos de Pago al Proveedor"/>
+                            </group>
+                            <group string="Estado y Clasificación">
+                                <field name="supplier_status"/>
+                                <!-- Usar category_id nativo para etiquetas/calificación -->
+                                <field name="category_id" widget="many2many_tags" 
+                                       string="Etiquetas/Calificación"
+                                       options="{'color_field': 'color', 'no_create_edit': True}"/>
+                            </group>
+                        </group>
+                        
+                        <group string="Notas del Proveedor">
+                            <field name="supplier_notes" nolabel="1"/>
+                        </group>
+                        
+                        <group string="Contactos para Compras">
+                            <p class="text-muted">
+                                Para gestionar contactos específicos de compras, agregue contactos
+                                en la pestaña "Contactos e Direcciones" con la función "Compras" o similar.
+                            </p>
+                        </group>
+                        
+                    </page>
+                </xpath>
+                
+            </field>
+        </record>
+
+        <!-- Vista de lista extendida para proveedores -->
+        <record id="view_partner_tree_inherit_purchase_custom" model="ir.ui.view">
+            <field name="name">res.partner.tree.purchase.custom</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='complete_name']" position="after">
+                    <field name="is_main_supplier" optional="hide"/>
+                    <field name="supplier_status" optional="hide"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Vista de búsqueda extendida -->
+        <record id="view_partner_filter_inherit_purchase_custom" model="ir.ui.view">
+            <field name="name">res.partner.search.purchase.custom</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_res_partner_filter"/>
+            <field name="arch" type="xml">
+                <xpath expr="//filter[@name='supplier']" position="after">
+                    <filter string="Proveedores Principales" name="main_suppliers"
+                            domain="[('is_main_supplier', '=', True)]"/>
+                    <filter string="Proveedores Activos" name="active_suppliers"
+                            domain="[('supplier_status', '=', 'active'), ('supplier_rank', '>', 0)]"/>
+                </xpath>
+                
+                <xpath expr="//group" position="inside">
+                    <filter string="Por Estado de Proveedor" name="group_supplier_status"
+                            domain="[]" context="{'group_by': 'supplier_status'}"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

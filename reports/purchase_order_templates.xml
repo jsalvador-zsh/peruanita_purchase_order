@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Herencia del reporte estándar de órdenes de compra -->
+        <template id="report_purchaseorder_document_inherit" inherit_id="purchase.report_purchaseorder_document">
+            <!-- Establecer variables del documento -->
+            <xpath expr="//t[@t-call='web.external_layout']" position="before">
+                <t t-set="company" t-value="o.company_id" />
+                <t t-set="document_display_name" t-value="'ORDEN DE COMPRA'" />
+            </xpath>
+            <!-- Reemplazar el layout externo con tu layout personalizado -->
+            <xpath expr="//t[@t-call='web.external_layout']" position="replace">
+                <t t-call="peruanita_bg_layout.peruanita_layout_background">
+                    <t t-set="company" t-value="o.company_id" />
+                    <t t-set="document_display_name" t-value="'ORDEN DE COMPRA'" />
+                    <div class="page">
+                        <!-- Encabezado principal -->
+                        <div class="row mb-3">
+                            <div class="col-12 text-center">
+                                <h2 style="font-weight: bold; margin-bottom: 10px;">
+                                     <t t-if="o.state in ['draft', 'sent', 'to approve']">SOLICITUD DE COTIZACIÓN </t>
+                                    <t t-if="o.state in ['purchase', 'done']">ORDEN DE COMPRA</t>
+                                </h2>
+                            </div>
+                        </div>
+
+                        <!-- Información principal de la orden -->
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <table style="width: 100%; font-size: 14px;">
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold; width: 40%;">ÁREA SOLICITANTE:</td>
+                                        <td style="padding:5px; text-transform: uppercase;">
+                                            <t t-esc="o.requesting_department_id.name if o.requesting_department_id else ''" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">MES DE ABAST.:</td>
+                                        <td style="padding:5px; text-transform: uppercase;">
+                                            <t
+                                                t-esc="dict(o._fields['supply_month'].selection).get(o.supply_month, '')" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-6">
+                                <table style="width: 100%; font-size: 14px;">
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold; width: 40%;">N°ORDEN:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="o.name" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">FECHA DE EMISIÓN:</td>
+                                        <td style="padding:5px;">
+                                            <t
+                                                t-esc="o.formatted_date or o.date_order.strftime('%d/%m/%y') if o.date_order else ''" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Información del proveedor -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <t t-set="bank_info" t-value="o.get_supplier_bank_info()" />
+                                <t t-set="contact_info" t-value="o.get_purchase_contact_info()" />
+
+                                <table style="width: 100%; font-size: 14px;">
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold; width: 15%;">PROVEEDOR:</td>
+                                        <td style="padding:5px; width: 35%;">
+                                            <t t-esc="o.partner_id.name" />
+                                        </td>
+                                        <td style="padding:5px; font-weight: bold; width: 15%;">CONTACTO:</td>
+                                        <td>
+                                            <t t-esc="contact_info.get('name', '')" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">RUC/DNI:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="o.partner_id.vat or ''" />
+                                        </td>
+                                        <td style="padding:5px; font-weight: bold;">BANCO:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="bank_info.get('bank_name', '')" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">TELEFONO:</td>
+                                        <td style="padding:5px;"> 
+                                            <t t-esc="contact_info.get('phone', '')" />
+                                        </td>
+                                        <td style="padding:5px; font-weight: bold;">CTA NRO:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="bank_info.get('account_number', '')" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">EMAIL:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="contact_info.get('email', '')" />
+                                        </td>
+                                        <td style="padding:5px; font-weight: bold;">CCI NRO:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="bank_info.get('cci_number', '')" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td style="padding:5px; font-weight: bold;">TIPO CUENTA:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="bank_info.get('account_type', '')" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Fecha de entrega -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <table style="width: 100%; font-size: 14px;">
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">FECHA DE ENTREGA DE LOS
+                                            BIENES:</td>
+                                        <td style="padding:5px;">
+                                            <t
+                                                t-esc="o.date_planned.strftime('%d/%m/%y') if o.date_planned else ''" />
+                                        </td>
+                                        <td style="padding:5px; font-weight: bold;">TÉRMINOS DE PAGO:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="o.payment_term_id.name if o.payment_term_id else ''" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de productos -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <table class="table table-sm table-bordered"
+                                    style="font-size: 12px; width: 100%;">
+                                    <thead style="background-color: #f8f9fa;">
+                                        <tr style="font-weight: bold;">
+                                            <th
+                                                style="width: 5%; text-align: center; padding: 8px; border: 1px solid black;">
+                                                N°</th>
+                                            <th
+                                                style="width: 45%; text-align: center; padding: 8px; border: 1px solid black;">DESCRIPCIÓN
+                                                DE LOS BIENES O INSUMOS</th>
+                                            <th
+                                                style="width: 10%; text-align: center; padding: 8px; border: 1px solid black;">
+                                                CANTIDAD</th>
+                                            <th
+                                                style="width: 10%; text-align: center; padding: 8px; border: 1px solid black;">
+                                                UNIDAD</th>
+                                            <th
+                                                style="width: 15%; text-align: center; padding: 8px; border: 1px solid black;">
+                                                P.U</th>
+                                            <th
+                                                style="width: 15%; text-align: center; padding: 8px; border: 1px solid black;">
+                                                IMPORTE</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-set="line_number" t-value="1" />
+                                        <t t-foreach="o.order_line" t-as="line">
+                                            <tr t-if="not line.display_type">
+                                                <td
+                                                    style="text-align: center; padding: 8px; border: 1px solid black;">
+                                                    <t t-esc="line_number" />
+                                                    <t t-set="line_number" t-value="line_number + 1" />
+                                                </td>
+                                                <td
+                                                    style="padding: 8px; border: 1px solid black; text-transform: uppercase;">
+                                                    <t t-esc="line.name" />
+                                                </td>
+                                                <td
+                                                    style="text-align: center; padding: 8px; border: 1px solid black;">
+                                                    <t t-esc="'{:,.0f}'.format(line.product_qty)" />
+                                                </td>
+                                                <td
+                                                    style="text-align: center; padding: 8px; border: 1px solid black;">
+                                                    <t t-esc="line.product_uom.name.upper()" />
+                                                </td>
+                                                <td
+                                                    style="text-align: center; padding: 8px; border: 1px solid black;">
+                                                    S/ <t t-esc="'{:,.2f}'.format(line.price_unit)" />
+                                                </td>
+                                                <td
+                                                    style="text-align: center; padding: 8px; border: 1px solid black;">
+                                                    S/ <t
+                                                        t-esc="'{:,.0f}'.format(line.price_subtotal)" />
+                                                </td>
+                                            </tr>
+                                        </t>
+                                        <!-- Fila de total -->
+                                        <tr>
+                                            <td colspan="5"
+                                                style="text-align: right; padding: 8px; font-weight: bold; border: 1px solid black;">
+                                                TOTAL
+                                            </td>
+                                            <td
+                                                style="text-align: center; padding: 8px; font-weight: bold; border: 1px solid black;">
+                                                S/ <t t-esc="'{:,.0f}'.format(o.amount_total)" />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Adelanto y observaciones -->
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <table style="width: 100%; font-size: 14px;">
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">ADELANTO:</td>
+                                        <td style="padding:5px; text-transform: uppercase;">
+                                            <t t-esc="o.payment_term_id.name if o.payment_term_id else ''" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-6">
+                                <table style="width: 100%; font-size: 14px;">
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold; vertical-align: top;">
+                                            OBSERVACIÓN:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="o.purchase_observations or ''" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Datos de facturación -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <table style="width: 100%; font-size: 14px;">
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">DATOS FACTURACION:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="o.company_id.name" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">RUC:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="o.company_id.vat or ''" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">DIRECCIÓN:</td>
+                                        <td style="padding:5px;">
+                                            <t t-esc="o.company_id.street or ''" />
+                                            <t t-if="o.company_id.street2">, <t
+                                                    t-esc="o.company_id.street2" /></t>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Firmas -->
+                        <div style="width:100%; margin-top:50px; text-align:center;">
+                            <div style="display:inline-block; width:25%; margin:0 2%; text-align:center; font-size:12px;">
+                                <p style="margin-bottom: 5px; padding-top: 5px;">ELABORADO POR:</p>
+                                <div style="border-top:1px solid black; margin-top:50px; padding-top:5px;">Sello/Firma área solicitante</div>
+                            </div>
+                            <div style="display:inline-block; width:25%; margin:0 2%; text-align:center; font-size:12px;">
+                                <p style="margin-bottom: 5px; padding-top: 5px;">RECIBIDO POR:</p>
+                                <div style="border-top:1px solid black; margin-top:50px; padding-top:5px;">Sello/Firma área tesorería</div>
+                            </div>
+                            <div style="display:inline-block; width:25%; margin:0 2%; text-align:center; font-size:12px;">
+                                <p style="margin-bottom: 5px; padding-top: 5px;">CONSTANCIA DE CANCELACIÓN TOTAL:</p>
+                                <div style="border-top:1px solid black; margin-top:50px; padding-top:5px;">Sello/Firma área tesorería</div>
+                            </div>
+                        </div>
+                        <!-- Fechas de cancelación -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <table style="width: 100%; font-size: 14px;">
+                                    <tr>
+                                        <td style="padding:5px; font-weight: bold;">Fecha(s) de cancelación:</td>
+                                        <td>
+                                            <t t-esc="o.cancellation_dates or ''" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Nota final -->
+                        <div class="row">
+                            <div class="col-12">
+                                <p style="font-size: 14px; font-weight: bold;">
+                                    NOTA: De realizarse un pago mal coordinado o pago no autorizado
+                                    por gerencia,
+                                    el área solicitante se hará responsable de la devolución y monto
+                                    de pago en efectivo,
+                                    depósito o transferencia.
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </t>
+            </xpath>
+
+        </template>
+
+    </data>
+</odoo>
