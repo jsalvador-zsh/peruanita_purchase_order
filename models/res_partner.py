@@ -12,8 +12,6 @@ class ResPartner(models.Model):
     )
     
     # Días de entrega habitual usando campo nativo
-    # El campo lead_time_days ya existe en account.payment.term
-    # Pero lo agregamos aquí para el proveedor
     supplier_delivery_days = fields.Integer(
         string='Días de Entrega',
         default=7,
@@ -33,9 +31,6 @@ class ResPartner(models.Model):
         ('blacklist', 'Lista Negra'),
         ('evaluation', 'En Evaluación'),
     ], string='Estado del Proveedor', default='active')
-    
-    # Eliminar supplier_rating y usar category_id nativo de Odoo para etiquetas
-    # Las etiquetas se manejan con res.partner.category
     
     # Método para obtener la cuenta bancaria principal
     def get_main_bank_account(self):
@@ -87,9 +82,9 @@ class ResPartner(models.Model):
     def _check_vat_format(self):
         for partner in self:
             if partner.vat and partner.country_id and partner.country_id.code == 'PE':
-                # Validación básica para Perú
+                # Validación básica
                 if len(partner.vat) not in [8, 11]:  # DNI: 8 dígitos, RUC: 11 dígitos
-                    pass  # Validación suave, no bloquear registro
+                    pass
     
     # Filtros y búsquedas mejoradas
     @api.model

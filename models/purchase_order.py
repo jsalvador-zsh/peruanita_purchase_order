@@ -66,6 +66,38 @@ class PurchaseOrder(models.Model):
         ('cancelled', 'Cancelado'),
     ], string='Estado de Pago', default='pending')
     
+    receipt_status = fields.Selection([
+        ('no', 'No Recibido'),
+        ('partial', 'Parcialmente Recibido'),
+        ('full', 'Totalmente Recibido'),
+    ], string='Estado de Recepción', compute='_compute_receipt_status', store=True)
+    
+    @api.depends('order_line.qty_received', 'order_line.product_qty')
+    def _compute_receipt_status(self):
+        for order in self:
+            if order.state not in ('purchase', 'done'):
+                order.receipt_status = 'no'
+                continue
+                
+            # Verificar si hay líneas de producto (no servicios)
+            product_lines = order.order_line.filtered(
+                lambda l: l.product_id.type in ['product', 'consu']
+            )
+            
+            if not product_lines:
+                order.receipt_status = 'no'
+                continue
+            
+            total_ordered = sum(product_lines.mapped('product_qty'))
+            total_received = sum(product_lines.mapped('qty_received'))
+            
+            if total_received == 0:
+                order.receipt_status = 'no'
+            elif total_received >= total_ordered:
+                order.receipt_status = 'full'
+            else:
+                order.receipt_status = 'partial'
+
     # Método para generar número de orden personalizado
     @api.model
     def create(self, vals):
@@ -182,3 +214,26 @@ class PurchaseOrder(models.Model):
         compute='_compute_formatted_date',
         store=True
     )
+
+class PurchaseOrderLine(models.Model):
+    _inherit = 'purchase.order.line'
+    
+    receipt_status_line = fields.Selection([
+        ('no', 'No Recibido'),
+        ('partial', 'Parcialmente Recibido'),
+        ('full', 'Totalmente Recibido'),
+    ], string='Estado Recepción', compute='_compute_receipt_status_line', store=True)
+    
+    @api.depends('qty_received', 'product_qty')
+    def _compute_receipt_status_line(self):
+        for line in self:
+            if line.product_id.type not in ['product', 'consu']:
+                line.receipt_status_line = 'no'
+                continue
+                
+            if line.qty_received == 0:
+                line.receipt_status_line = 'no'
+            elif line.qty_received >= line.product_qty:
+                line.receipt_status_line = 'full'
+            else:
+                line.receipt_status_line = 'partial'
