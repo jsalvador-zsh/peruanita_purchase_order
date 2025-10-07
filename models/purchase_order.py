@@ -58,13 +58,32 @@ class PurchaseOrder(models.Model):
         string='Fecha(s) de cancelación'
     )
     
-    # Estado de pago
+    # Estado de pago (computado automáticamente)
     payment_status = fields.Selection([
-        ('pending', 'Pendiente'),
-        ('partial', 'Parcial'),
-        ('paid', 'Pagado'),
-        ('cancelled', 'Cancelado'),
-    ], string='Estado de Pago', default='pending')
+        ('no_paid', 'No Pagado'),
+        ('partial', 'Pago Parcial'),
+        ('paid', 'Pagado Completo'),
+    ], string='Estado de Pago', compute='_compute_payment_status', store=True)
+    
+    # Campos para mostrar información de pagos
+    total_paid_amount = fields.Monetary(
+        string='Monto Total Pagado',
+        compute='_compute_payment_status',
+        store=True,
+        currency_field='currency_id'
+    )
+    
+    payment_percentage = fields.Float(
+        string='% Pagado',
+        compute='_compute_payment_status',
+        store=True
+    )
+    
+    # Contador de pagos directos para smart button
+    direct_payment_count = fields.Integer(
+        string='Cantidad de Pagos Directos',
+        compute='_compute_direct_payment_count'
+    )
     
     receipt_status = fields.Selection([
         ('no', 'No Recibido'),
@@ -97,6 +116,137 @@ class PurchaseOrder(models.Model):
                 order.receipt_status = 'full'
             else:
                 order.receipt_status = 'partial'
+    
+    @api.depends('invoice_ids', 'invoice_ids.payment_state', 'invoice_ids.amount_total', 
+                 'invoice_ids.amount_residual', 'amount_total', 'partner_id')
+    def _compute_payment_status(self):
+        """
+        Calcula el estado de pago de la orden de compra considerando:
+        1. Pagos vinculados a facturas de la orden (facturas confirmadas)
+        2. Pagos directos sin factura (account.payment vinculados a la orden)
+        """
+        AccountPayment = self.env['account.payment']
+        
+        for order in self:
+            if order.amount_total == 0:
+                order.total_paid_amount = 0
+                order.payment_percentage = 0
+                order.payment_status = 'no_paid'
+                continue
+            
+            total_paid = 0.0
+            counted_payment_ids = set()
+            
+            # 1. Sumar pagos de facturas vinculadas a esta orden de compra
+            vendor_bills = order.invoice_ids.filtered(
+                lambda inv: inv.move_type == 'in_invoice' and inv.state == 'posted'
+            )
+            
+            for bill in vendor_bills:
+                # Calcular el monto pagado de esta factura
+                # amount_residual es lo que falta por pagar
+                # entonces lo pagado es: total - residual
+                paid_amount = bill.amount_total - bill.amount_residual
+                total_paid += paid_amount
+                
+                # Guardar IDs de pagos ya contados para evitar duplicados
+                # Buscar los movimientos de línea de cuenta relacionados
+                if bill.line_ids:
+                    reconciled_lines = bill.line_ids.filtered(lambda l: l.account_id.account_type in ['liability_payable'])
+                    for line in reconciled_lines:
+                        if line.matched_debit_ids or line.matched_credit_ids:
+                            # Obtener los pagos asociados a estas líneas reconciliadas
+                            payment_lines = line.matched_debit_ids.mapped('debit_move_id') | line.matched_credit_ids.mapped('credit_move_id')
+                            payments = AccountPayment.search([('move_id', 'in', payment_lines.mapped('move_id').ids)])
+                            counted_payment_ids.update(payments.ids)
+            
+            # 2. Buscar pagos directos vinculados a esta orden (sin factura o con factura en borrador)
+            # Solo si el modelo tiene el campo purchase_id (que acabamos de agregar)
+            direct_payments = AccountPayment.search([
+                ('id', 'not in', list(counted_payment_ids)),
+                ('purchase_id', '=', order.id),
+                ('state', 'in', ['paid', 'in_process']),
+                ('payment_type', '=', 'outbound'),
+            ])
+            
+            for payment in direct_payments:
+                # Verificar que no esté vinculado a una factura confirmada de esta orden
+                is_linked_to_posted_bill = False
+                if hasattr(payment, 'reconciled_invoice_ids'):
+                    for invoice in payment.reconciled_invoice_ids:
+                        if invoice.state == 'posted' and invoice in vendor_bills:
+                            is_linked_to_posted_bill = True
+                            break
+                
+                if not is_linked_to_posted_bill:
+                    total_paid += payment.amount
+                    counted_payment_ids.add(payment.id)
+            
+            # 3. Buscar pagos que mencionen esta orden en el memo o payment_reference
+            # (esto cubre casos donde se registró el pago manualmente sin usar el campo purchase_id)
+            if order.name:
+                payments_by_ref = AccountPayment.search([
+                    ('id', 'not in', list(counted_payment_ids)),
+                    ('partner_id', '=', order.partner_id.id),
+                    ('state', 'in', ['paid', 'in_process']),
+                    ('payment_type', '=', 'outbound'),
+                    '|',
+                    ('memo', 'ilike', order.name),
+                    ('payment_reference', 'ilike', order.name)
+                ])
+                
+                for payment in payments_by_ref:
+                    # Verificar que no esté vinculado a facturas de esta orden
+                    is_linked = False
+                    if hasattr(payment, 'reconciled_invoice_ids'):
+                        for invoice in payment.reconciled_invoice_ids:
+                            if invoice.state == 'posted' and invoice in vendor_bills:
+                                is_linked = True
+                                break
+                    
+                    if not is_linked:
+                        total_paid += payment.amount
+            
+            # Calcular porcentaje y determinar estado
+            order.total_paid_amount = total_paid
+            order.payment_percentage = (total_paid / order.amount_total * 100) if order.amount_total > 0 else 0
+            
+            # Determinar estado de pago
+            if order.payment_percentage >= 99.99:  # Considerar 99.99% como 100% por redondeos
+                order.payment_status = 'paid'
+            elif order.payment_percentage > 0:
+                order.payment_status = 'partial'
+            else:
+                order.payment_status = 'no_paid'
+    
+    def _compute_direct_payment_count(self):
+        """Cuenta los pagos directamente vinculados a esta orden de compra"""
+        for order in self:
+            order.direct_payment_count = self.env['account.payment'].search_count([
+                ('purchase_id', '=', order.id)
+            ])
+    
+    def action_view_direct_payments(self):
+        """Acción para ver los pagos directamente vinculados a esta orden"""
+        self.ensure_one()
+        action = self.env['ir.actions.act_window']._for_xml_id('account.action_account_payments_payable')
+        action.update({
+            'name': 'Pagos de la Orden de Compra',
+            'domain': [('purchase_id', '=', self.id)],
+            'context': {
+                'default_purchase_id': self.id,
+                'default_partner_id': self.partner_id.id,
+                'default_payment_type': 'outbound',
+                'search_default_purchase_id': self.id,
+            }
+        })
+        return action
+    
+    def action_recalculate_payment_status(self):
+        """Botón para forzar recálculo del estado de pago (útil para debugging)"""
+        for order in self:
+            order._compute_payment_status()
+        return True
 
     # Método para generar número de orden personalizado
     @api.model

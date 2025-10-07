@@ -7,6 +7,17 @@
             <field name="model">purchase.order</field>
             <field name="inherit_id" ref="purchase.purchase_order_form" />
             <field name="arch" type="xml">
+                
+                <!-- Agregar smart button para ver pagos directos -->
+                <xpath expr="//div[@name='button_box']" position="inside">
+                    <button name="action_view_direct_payments" 
+                            type="object" 
+                            class="oe_stat_button" 
+                            icon="fa-money"
+                            invisible="direct_payment_count == 0">
+                        <field name="direct_payment_count" widget="statinfo" string="Pagos Directos"/>
+                    </button>
+                </xpath>
 
                 <!-- Agregar información de orden personalizada después del proveedor -->
                 <xpath expr="//field[@name='partner_id']" position="after">
@@ -24,12 +35,41 @@
                             <group string="Control de Proceso">
                                 <field name="elaborated_by" />
                                 <field name="received_by" />
-                                <field name="payment_status" />
                             </group>
                             <group string="Aprobación Tesorería">
                                 <field name="treasury_approval" />
                                 <field name="treasury_approved_by" />
                                 <field name="cancellation_dates" />
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Estado de Pago">
+                                <field name="payment_status" widget="badge"
+                                    decoration-danger="payment_status == 'no_paid'"
+                                    decoration-warning="payment_status == 'partial'"
+                                    decoration-success="payment_status == 'paid'"/>
+                                <field name="total_paid_amount" widget="monetary"/>
+                                <field name="payment_percentage" widget="percentage"/>
+                                <label for="amount_total" string="Monto Total de la Orden"/>
+                                <div>
+                                    <field name="amount_total" widget="monetary" class="oe_inline"/>
+                                </div>
+                                <button name="action_recalculate_payment_status" 
+                                        type="object" 
+                                        string="Recalcular Estado" 
+                                        class="btn-secondary"
+                                        help="Fuerza el recálculo del estado de pago"/>
+                            </group>
+                            <group>
+                                <div class="alert alert-info" role="alert" style="margin-bottom: 0px;">
+                                    <p><strong>Información sobre el estado de pago:</strong></p>
+                                    <ul style="margin-bottom: 0;">
+                                        <li>Se consideran pagos de facturas confirmadas</li>
+                                        <li>Se consideran pagos directos vinculados a esta O.C.</li>
+                                        <li>Para vincular un pago a esta orden, use el campo "Orden de Compra" en el registro de pago</li>
+                                    </ul>
+                                </div>
                             </group>
                         </group>
 
@@ -71,6 +111,10 @@
                         decoration-info="receipt_status == 'no'"
                         decoration-warning="receipt_status == 'partial'"
                         decoration-success="receipt_status == 'full'" optional="show"/>
+                    <field name="payment_status" widget="badge"
+                        decoration-danger="payment_status == 'no_paid'"
+                        decoration-warning="payment_status == 'partial'"
+                        decoration-success="payment_status == 'paid'" optional="show"/>
                 </field>
             </field>
         </record>
@@ -104,8 +148,13 @@
 
                 <xpath expr="//filter[@name='draft']" position="after">
                     <separator />
-                    <filter string="Pendiente Pago" name="filter_pending_payment"
-                        domain="[('payment_status', '=', 'pending')]" />
+                    <filter string="No Pagado" name="filter_no_paid"
+                        domain="[('payment_status', '=', 'no_paid')]" />
+                    <filter string="Pago Parcial" name="filter_partial_payment"
+                        domain="[('payment_status', '=', 'partial')]" />
+                    <filter string="Pagado Completo" name="filter_paid"
+                        domain="[('payment_status', '=', 'paid')]" />
+                    <separator />
                     <filter string="Aprobado Tesorería" name="filter_treasury_approved"
                         domain="[('treasury_approval', '=', True)]" />
                 </xpath>

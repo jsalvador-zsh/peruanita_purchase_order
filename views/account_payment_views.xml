@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Vista de formulario de pago extendida -->
+        <record id="view_account_payment_form_purchase_order" model="ir.ui.view">
+            <field name="name">account.payment.form.purchase.order</field>
+            <field name="model">account.payment</field>
+            <field name="inherit_id" ref="account.view_account_payment_form"/>
+            <field name="arch" type="xml">
+                <!-- Agregar campo de orden de compra después del partner -->
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="purchase_id" 
+                           invisible="payment_type != 'outbound'"
+                           domain="[('partner_id', '=', partner_id), ('state', 'in', ['purchase', 'done'])]"
+                           options="{'no_create': True}"/>
+                    <field name="purchase_order_name" invisible="1"/>
+                </xpath>
+            </field>
+        </record>
+        
+        <!-- Vista de lista de pagos extendida -->
+        <record id="view_account_payment_tree_purchase_order" model="ir.ui.view">
+            <field name="name">account.payment.tree.purchase.order</field>
+            <field name="model">account.payment</field>
+            <field name="inherit_id" ref="account.view_account_payment_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="purchase_order_name" optional="show" string="O. Compra"/>
+                </xpath>
+            </field>
+        </record>
+        
+        <!-- Vista de búsqueda de pagos extendida -->
+        <record id="view_account_payment_search_purchase_order" model="ir.ui.view">
+            <field name="name">account.payment.search.purchase.order</field>
+            <field name="model">account.payment</field>
+            <field name="inherit_id" ref="account.view_account_payment_search"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='name']" position="after">
+                    <field name="purchase_id"/>
+                </xpath>
+            
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -1,6 +1,6 @@
 {
     'name': 'Personalización Módulo de Compras - PERUANITA',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.0.3',
     'category': 'Purchases',
     'summary': 'Personalización del módulo de compras para formato de órdenes específico',
     'description': """
@@ -27,6 +27,7 @@
         'views/res_partner_bank_views.xml',
         'views/res_partner_views.xml',
         'views/purchase_order_views.xml',
+        'views/account_payment_views.xml',
         'reports/purchase_order_templates.xml',
     ],
     'installable': True,
