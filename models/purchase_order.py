@@ -365,6 +365,9 @@ class PurchaseOrder(models.Model):
         store=True
     )
 
+    # Campo para almacenar imagen de firma (binary, base64)
+    signature_image = fields.Binary(string='Firma (imagen)')
+
 class PurchaseOrderLine(models.Model):
     _inherit = 'purchase.order.line'
     

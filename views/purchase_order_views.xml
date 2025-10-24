@@ -77,6 +77,11 @@
                             <field name="purchase_observations" nolabel="1" />
                         </group>
 
+                        <group string="Firma (Documento)">
+                            <field name="signature_image" widget="image" class="oe_avatar" options="{'preview_image': 'signature_image'}"/>
+                            <p class="text-muted" style="font-size:11px; margin-top:5px;">Cargue aquí la imagen de la firma que se usará en el PDF (opcional).</p>
+                        </group>
+
                         <group string="Información del Proveedor" name="supplier_info">
                             <!-- Mostrar información de contactos -->
                             <group string="Contacto de Compras">
@@ -106,6 +111,10 @@
             <field name="model">purchase.order</field>
             <field name="inherit_id" ref="purchase.purchase_order_kpis_tree"/>
             <field name="arch" type="xml">
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="supply_month" optional="show" />
+                    <field name="destination_municipality_ids" widget="many2many_tags" optional="show" />
+                </xpath>
                 <field name="invoice_status" position="after">
                     <field name="receipt_status" widget="badge"
                         decoration-info="receipt_status == 'no'"
@@ -144,6 +153,7 @@
                 <xpath expr="//field[@name='name']" position="after">
                     <field name="requesting_department_id" />
                     <field name="supply_month" />
+                    <field name="destination_municipality_ids" string="Municipio Destino"/>
                 </xpath>
 
                 <xpath expr="//filter[@name='draft']" position="after">

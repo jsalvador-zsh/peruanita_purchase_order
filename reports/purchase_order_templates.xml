@@ -273,7 +273,13 @@
                         <div style="width:100%; margin-top:50px; text-align:center;">
                             <div style="display:inline-block; width:25%; margin:0 2%; text-align:center; font-size:12px;">
                                 <p style="margin-bottom: 5px; padding-top: 5px;">ELABORADO POR:</p>
-                                <div style="border-top:1px solid black; margin-top:50px; padding-top:5px;">Sello/Firma área solicitante</div>
+                                <div style="border-top:1px solid black; margin-top:50px; padding-top:5px; position:relative; height:160px;">
+                                    <!-- Mostrar imagen de firma cargada en el formulario si existe -->
+                                    <t t-if="o.signature_image">
+                                        <img src="https://upload.clicderecho.pe/uploads/fc5b1943-00b8-4e85-a8e5-18ce2e61253a.png" style="position:absolute; left:0%; transform:translateX(-30%); top:-90px; height:140px; width:100%; "/>
+                                    </t>
+                                    Sello/Firma área solicitante
+                                </div>
                             </div>
                             <div style="display:inline-block; width:25%; margin:0 2%; text-align:center; font-size:12px;">
                                 <p style="margin-bottom: 5px; padding-top: 5px;">RECIBIDO POR:</p>
